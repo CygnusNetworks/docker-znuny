@@ -159,6 +159,9 @@ tarball and `.sha256` checksum.
 | Daily schedule (`watch-lts.yml`) | Detects new `rel-6_5_*` tags on [znuny/Znuny](https://github.com/znuny/Znuny); builds if the image tag is missing |
 | `workflow_dispatch` | Manual build for a given version |
 
+CI secrets (org or repo): `DOCKER_USERNAME`, `DOCKER_TOKEN` for Docker Hub.
+GHCR uses the built-in `GITHUB_TOKEN`.
+
 Floating tags `6.5`, `stable`, and `latest` are updated when a build is marked
 as the current LTS line head.
 
