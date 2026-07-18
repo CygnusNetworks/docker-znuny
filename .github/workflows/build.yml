@@ -6,26 +6,28 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Znuny LTS version (e.g. 6.5.22)
+        description: Znuny version (e.g. 6.5.22 or 7.3.4)
         required: true
         default: "6.5.22"
       also_stable:
-        description: Also tag as 6.5 / stable / latest
+        description: Also tag series (X.Y); stable/latest only for STABLE_SERIES
         type: boolean
         default: true
   workflow_call:
     inputs:
       version:
-        description: Znuny LTS version
+        description: Znuny version
         required: true
         type: string
       also_stable:
-        description: Also tag as 6.5 / stable / latest
+        description: Also tag series (X.Y); stable/latest only for STABLE_SERIES
         type: boolean
         default: true
 
 env:
   DEFAULT_VERSION: "6.5.22"
+  # Which series gets the stable/latest moving tags (production series).
+  STABLE_SERIES: "6.5"
   # GHCR package name must NOT be "znuny" — that private package is owned by
   # CygnusNetworks/znuny-docker (migration). GITHUB_TOKEN from this repo gets 403.
   GHCR_IMAGE: ghcr.io/cygnusnetworks/docker-znuny
@@ -85,10 +87,14 @@ jobs:
           ALSO_STABLE: ${{ steps.ver.outputs.also_stable }}
         run: |
           TAGS="${GHCR_IMAGE}:${VERSION},${DOCKERHUB_IMAGE}:${VERSION}"
+          SERIES="${VERSION%.*}"
           if [ "${ALSO_STABLE}" = "true" ]; then
-            TAGS="${TAGS},${GHCR_IMAGE}:6.5,${DOCKERHUB_IMAGE}:6.5"
-            TAGS="${TAGS},${GHCR_IMAGE}:stable,${DOCKERHUB_IMAGE}:stable"
-            TAGS="${TAGS},${GHCR_IMAGE}:latest,${DOCKERHUB_IMAGE}:latest"
+            TAGS="${TAGS},${GHCR_IMAGE}:${SERIES},${DOCKERHUB_IMAGE}:${SERIES}"
+            # stable/latest stay pinned to the production series
+            if [ "${SERIES}" = "${STABLE_SERIES}" ]; then
+              TAGS="${TAGS},${GHCR_IMAGE}:stable,${DOCKERHUB_IMAGE}:stable"
+              TAGS="${TAGS},${GHCR_IMAGE}:latest,${DOCKERHUB_IMAGE}:latest"
+            fi
           fi
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
           echo "tags: ${TAGS}"

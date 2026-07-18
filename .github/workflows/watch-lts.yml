@@ -1,10 +1,14 @@
-name: Watch Znuny LTS releases
+name: Watch Znuny releases
 
 on:
   schedule:
     # Daily 06:15 UTC
     - cron: "15 6 * * *"
   workflow_dispatch:
+
+env:
+  # Series to track (newest patch release each). Tags look like rel-6_5_22.
+  WATCH_SERIES: "6_5 7_3"
 
 jobs:
   detect:
@@ -14,72 +18,82 @@ jobs:
       packages: read
       actions: write
     outputs:
-      version: ${{ steps.pick.outputs.version }}
-      should_build: ${{ steps.pick.outputs.should_build }}
+      versions: ${{ steps.pick.outputs.versions }}
     steps:
-      - name: Find latest Znuny LTS 6.5.x
+      - name: Find latest release per watched series
         id: pick
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          # Tags look like rel-6_5_22
-          mapfile -t REFS < <(
-            gh api --paginate "repos/znuny/Znuny/git/matching-refs/tags/rel-6_5" \
-              --jq '.[].ref' \
-            | sed 's|refs/tags/||' \
-            | grep -E '^rel-6_5_[0-9]+$'
-          )
+          # ghcr package is private (free org) — manifest inspect needs auth.
+          echo "${GH_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null
 
-          LATEST=""
-          LATEST_SORT=""
-          for ref in "${REFS[@]}"; do
-            # rel-6_5_22 -> 6.5.22
-            ver="${ref#rel-}"
-            ver="${ver//_/.}"
-            # zero-pad patch for sort: 6.5.22 -> 000006.000005.000022
-            IFS=. read -r a b c <<< "$ver"
-            sortkey=$(printf '%06d.%06d.%06d' "$a" "$b" "$c")
-            if [[ -z "${LATEST_SORT}" || "${sortkey}" > "${LATEST_SORT}" ]]; then
-              LATEST_SORT="${sortkey}"
-              LATEST="${ver}"
+          BUILD_VERSIONS=()
+          for series in ${WATCH_SERIES}; do
+            mapfile -t REFS < <(
+              gh api --paginate "repos/znuny/Znuny/git/matching-refs/tags/rel-${series}" \
+                --jq '.[].ref' \
+              | sed 's|refs/tags/||' \
+              | grep -E "^rel-${series}_[0-9]+$" || true
+            )
+
+            LATEST=""
+            LATEST_SORT=""
+            for ref in "${REFS[@]}"; do
+              # rel-6_5_22 -> 6.5.22
+              ver="${ref#rel-}"
+              ver="${ver//_/.}"
+              IFS=. read -r a b c <<< "$ver"
+              sortkey=$(printf '%06d.%06d.%06d' "$a" "$b" "$c")
+              if [[ -z "${LATEST_SORT}" || "${sortkey}" > "${LATEST_SORT}" ]]; then
+                LATEST_SORT="${sortkey}"
+                LATEST="${ver}"
+              fi
+            done
+
+            if [[ -z "${LATEST}" ]]; then
+              echo "No rel-${series}_* tags found — skipping series" >&2
+              continue
+            fi
+            echo "Series ${series//_/.}: latest upstream ${LATEST}"
+
+            # Confirm tarball + checksum exist
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              "https://download.znuny.org/releases/znuny-${LATEST}.tar.gz")
+            code_sum=$(curl -sS -o /dev/null -w '%{http_code}' \
+              "https://download.znuny.org/releases/znuny-${LATEST}.tar.gz.sha256")
+            if [[ "${code}" != "200" || "${code_sum}" != "200" ]]; then
+              echo "Tarball for ${LATEST} not ready yet (tar=${code} sha=${code_sum}); skipping" >&2
+              continue
+            fi
+
+            # Skip if GHCR already has this tag
+            if docker manifest inspect "ghcr.io/cygnusnetworks/docker-znuny:${LATEST}" >/dev/null 2>&1; then
+              echo "Image ghcr.io/cygnusnetworks/docker-znuny:${LATEST} already exists"
+            else
+              echo "Image missing — will build ${LATEST}"
+              BUILD_VERSIONS+=("${LATEST}")
             fi
           done
 
-          if [[ -z "${LATEST}" ]]; then
-            echo "No rel-6_5_* tags found" >&2
-            exit 1
-          fi
-          echo "Latest upstream LTS tag: ${LATEST}"
-
-          # Confirm tarball + checksum exist
-          code=$(curl -sS -o /dev/null -w '%{http_code}' \
-            "https://download.znuny.org/releases/znuny-${LATEST}.tar.gz")
-          code_sum=$(curl -sS -o /dev/null -w '%{http_code}' \
-            "https://download.znuny.org/releases/znuny-${LATEST}.tar.gz.sha256")
-          if [[ "${code}" != "200" || "${code_sum}" != "200" ]]; then
-            echo "Tarball not ready yet (tar=${code} sha=${code_sum}); skipping" >&2
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-            echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Skip if GHCR already has this tag
-          if docker manifest inspect "ghcr.io/cygnusnetworks/docker-znuny:${LATEST}" >/dev/null 2>&1; then
-            echo "Image ghcr.io/cygnusnetworks/docker-znuny:${LATEST} already exists"
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          if [ ${#BUILD_VERSIONS[@]} -eq 0 ]; then
+            echo 'versions=[]' >> "$GITHUB_OUTPUT"
           else
-            echo "Image missing — will build ${LATEST}"
-            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            printf 'versions=%s\n' "$(printf '%s\n' "${BUILD_VERSIONS[@]}" | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
           fi
-          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: detect
-    if: needs.detect.outputs.should_build == 'true'
+    if: needs.detect.outputs.versions != '[]'
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.detect.outputs.versions) }}
+      # Independent series — one failing build must not cancel the other
+      fail-fast: false
     uses: ./.github/workflows/build.yml
     with:
-      version: ${{ needs.detect.outputs.version }}
+      version: ${{ matrix.version }}
       also_stable: true
     secrets: inherit
