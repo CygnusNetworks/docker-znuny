@@ -21,7 +21,7 @@ if grep -q 'otrs-dummy-host-placeholder' Kernel/Config.pm 2>/dev/null || ! grep 
     echo "WARNING: Kernel/Config.pm looks like the dist placeholder - did you forget to mount it?" >&2
 fi
 
-bin/otrs.SetPermissions.pl --web-group=www-data
+/usr/local/bin/znuny-setpermissions
 
 echo "Waiting for database..."
 for i in $(seq 1 60); do

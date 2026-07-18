@@ -118,7 +118,12 @@ RUN a2dismod -q mpm_event \
 # Kernel::System::Auth::HTTPBasicAuth / SSO setups.
 RUN printf 'SetEnvIf X-Forwarded-User "(.*)" REMOTE_USER=$1\n' > /etc/apache2/conf-enabled/auth-forward.conf
 
-RUN ${OTRS_ROOT}/bin/otrs.SetPermissions.pl --web-group=www-data
+# 6.x expects --otrs-user (default otrs), 7.x expects --znuny-user (default
+# znuny — which does not exist here). Wrapper picks the right option so the
+# child image and the entrypoint stay version-agnostic.
+RUN printf '#!/bin/sh\nif grep -q znuny-user %s/bin/otrs.SetPermissions.pl; then\n  exec %s/bin/otrs.SetPermissions.pl --znuny-user=otrs --web-group=www-data "$@"\nelse\n  exec %s/bin/otrs.SetPermissions.pl --otrs-user=otrs --web-group=www-data "$@"\nfi\n' "${OTRS_ROOT}" "${OTRS_ROOT}" "${OTRS_ROOT}" > /usr/local/bin/znuny-setpermissions \
+    && chmod 755 /usr/local/bin/znuny-setpermissions \
+    && /usr/local/bin/znuny-setpermissions
 
 COPY container/supervisord.conf /etc/supervisor/conf.d/znuny.conf
 COPY container/entrypoint.sh /entrypoint.sh
