@@ -6,7 +6,7 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/CygnusNetworks/docker-znuny)](https://github.com/CygnusNetworks/docker-znuny/commits/main)
 [![Docker Image Version](https://img.shields.io/docker/v/cygnusnetworks/znuny?sort=semver&label=docker%20hub)](https://hub.docker.com/r/cygnusnetworks/znuny)
 [![Docker Pulls](https://img.shields.io/docker/pulls/cygnusnetworks/znuny)](https://hub.docker.com/r/cygnusnetworks/znuny)
-[![GHCR](https://img.shields.io/badge/ghcr.io-cygnusnetworks%2Fznuny-blue)](https://github.com/CygnusNetworks/docker-znuny/pkgs/container/znuny)
+[![GHCR](https://img.shields.io/badge/ghcr.io-cygnusnetworks%2Fdocker--znuny-blue)](https://github.com/CygnusNetworks/docker-znuny/pkgs/container/docker-znuny)
 [![Znuny LTS](https://img.shields.io/badge/Znuny-LTS%206.5-informational)](https://download.znuny.org/)
 
 Debian-based **[Znuny](https://www.znuny.org/) LTS** Docker images built from the official source tarball.
@@ -19,8 +19,12 @@ Debian-based **[Znuny](https://www.znuny.org/) LTS** Docker images built from th
 
 | Registry | Image |
 |----------|--------|
-| GitHub Container Registry | `ghcr.io/cygnusnetworks/znuny` |
+| GitHub Container Registry | `ghcr.io/cygnusnetworks/docker-znuny` |
 | Docker Hub | `docker.io/cygnusnetworks/znuny` |
+
+GHCR uses the package name `docker-znuny` (matches this repo). The shorter
+name `ghcr.io/cygnusnetworks/znuny` is reserved by the separate private
+migration package and is not used here.
 
 ### Tags
 
@@ -48,7 +52,7 @@ New LTS 6.5.x releases are detected automatically (see [Update policy](#update-p
 ## Quick start
 
 ```bash
-docker pull ghcr.io/cygnusnetworks/znuny:stable
+docker pull ghcr.io/cygnusnetworks/docker-znuny:stable
 # or: docker pull cygnusnetworks/znuny:stable
 ```
 
@@ -82,7 +86,7 @@ Example:
 docker run -d --name znuny \
   -p 8080:80 \
   -v "$PWD/Config.pm:/opt/otrs/Kernel/Config.pm:ro" \
-  ghcr.io/cygnusnetworks/znuny:6.5.22
+  ghcr.io/cygnusnetworks/docker-znuny:6.5.22
 ```
 
 ## Environment variables
@@ -97,7 +101,7 @@ Passing a command bypasses boot entirely:
 ```bash
 docker run --rm -it \
   -v "$PWD/Config.pm:/opt/otrs/Kernel/Config.pm:ro" \
-  ghcr.io/cygnusnetworks/znuny:stable \
+  ghcr.io/cygnusnetworks/docker-znuny:stable \
   bash
 ```
 

@@ -26,8 +26,9 @@ on:
 
 env:
   DEFAULT_VERSION: "6.5.22"
-  IMAGE_NAME: znuny
-  GHCR_IMAGE: ghcr.io/cygnusnetworks/znuny
+  # GHCR package name must NOT be "znuny" — that private package is owned by
+  # CygnusNetworks/znuny-docker (migration). GITHUB_TOKEN from this repo gets 403.
+  GHCR_IMAGE: ghcr.io/cygnusnetworks/docker-znuny
   DOCKERHUB_IMAGE: docker.io/cygnusnetworks/znuny
 
 jobs:

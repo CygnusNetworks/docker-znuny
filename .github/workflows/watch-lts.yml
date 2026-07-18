@@ -66,8 +66,8 @@ jobs:
           fi
 
           # Skip if GHCR already has this tag
-          if docker manifest inspect "ghcr.io/cygnusnetworks/znuny:${LATEST}" >/dev/null 2>&1; then
-            echo "Image ghcr.io/cygnusnetworks/znuny:${LATEST} already exists"
+          if docker manifest inspect "ghcr.io/cygnusnetworks/docker-znuny:${LATEST}" >/dev/null 2>&1; then
+            echo "Image ghcr.io/cygnusnetworks/docker-znuny:${LATEST} already exists"
             echo "should_build=false" >> "$GITHUB_OUTPUT"
           else
             echo "Image missing — will build ${LATEST}"

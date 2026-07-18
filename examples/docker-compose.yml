@@ -27,7 +27,7 @@ services:
       retries: 10
 
   znuny:
-    image: ghcr.io/cygnusnetworks/znuny:stable
+    image: ghcr.io/cygnusnetworks/docker-znuny:stable
     # or: docker.io/cygnusnetworks/znuny:stable
     depends_on:
       db:

@@ -1,7 +1,7 @@
 # Znuny LTS on Debian (vanilla upstream tarball).
 #
 # Build:
-#   docker build --build-arg ZNUNY_VERSION=6.5.22 -t ghcr.io/cygnusnetworks/znuny:6.5.22 .
+#   docker build --build-arg ZNUNY_VERSION=6.5.22 -t ghcr.io/cygnusnetworks/docker-znuny:6.5.22 .
 #
 # Volume design: /opt/otrs/Kernel stays inside the image. Only Kernel/Config.pm,
 # optional Custom/ code and article storage are mounted at runtime, so an image
