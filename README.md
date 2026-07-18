@@ -22,10 +22,6 @@ Debian-based **[Znuny](https://www.znuny.org/) LTS** Docker images built from th
 | GitHub Container Registry | `ghcr.io/cygnusnetworks/docker-znuny` |
 | Docker Hub | `docker.io/cygnusnetworks/znuny` |
 
-GHCR uses the package name `docker-znuny` (matches this repo). The shorter
-name `ghcr.io/cygnusnetworks/znuny` is reserved by the separate private
-migration package and is not used here.
-
 ### Tags
 
 | Tag | Meaning |
