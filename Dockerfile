@@ -112,9 +112,11 @@ RUN ${OTRS_ROOT}/bin/otrs.CheckModules.pl | tee /tmp/checkmodules.out \
 # ScriptAlias + Frontend::WebPath must match in Config.pm on 7.x:
 #   $Self->{ScriptAlias} = 'otrs/';
 #   $Self->{'Frontend::WebPath'} = '/otrs-web/';
+# Order matters: filesystem paths first, then ALL remaining /znuny URL
+# references (ScriptAlias, Alias, <Location> blocks incl. the mod_perl
+# GenericInterface handler, ErrorDocument).
 RUN sed -i -e "s|/opt/znuny|${OTRS_ROOT}|g" \
-        -e "s|ScriptAlias /znuny/|ScriptAlias /otrs/|" \
-        -e "s|Alias /znuny-web/|Alias /otrs-web/|" \
+        -e "s|/znuny|/otrs|g" \
         ${OTRS_ROOT}/scripts/apache2-httpd.include.conf \
     && sed -i "s|/opt/znuny|${OTRS_ROOT}|g" ${OTRS_ROOT}/scripts/apache2-perl-startup.pl \
     && a2dismod -q mpm_event \
