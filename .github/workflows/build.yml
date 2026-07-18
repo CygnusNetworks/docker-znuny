@@ -134,7 +134,10 @@ jobs:
             fi
           fi
           if [ ${#EXTRA_TAGS[@]} -gt 0 ]; then
-            ALSO_LINE="Also published as: $(IFS=', '; echo "${EXTRA_TAGS[*]}")"
+            # bash "${arr[*]}" joins only on IFS[0]; build ", " ourselves
+            ALSO_JOINED="$(printf '%s, ' "${EXTRA_TAGS[@]}")"
+            ALSO_JOINED="${ALSO_JOINED%, }"
+            ALSO_LINE="Also published as: ${ALSO_JOINED}"
           else
             ALSO_LINE="Only the exact version tag was published (series/stable/latest not updated)."
           fi
