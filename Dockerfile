@@ -106,7 +106,18 @@ RUN ${OTRS_ROOT}/bin/otrs.CheckModules.pl | tee /tmp/checkmodules.out \
     && perl -I. -I Kernel/cpan-lib -cw bin/otrs.Console.pl
 
 # Apache: mod_perl needs the prefork MPM; Znuny ships its own include config.
-RUN a2dismod -q mpm_event \
+# 7.x ships the include with hardcoded /opt/znuny paths and /znuny/ URL
+# aliases; we install to /opt/otrs and keep the historical /otrs/ URLs
+# (reverse proxy, API clients, healthcheck). The sed is a no-op on 6.x.
+# ScriptAlias + Frontend::WebPath must match in Config.pm on 7.x:
+#   $Self->{ScriptAlias} = 'otrs/';
+#   $Self->{'Frontend::WebPath'} = '/otrs-web/';
+RUN sed -i -e "s|/opt/znuny|${OTRS_ROOT}|g" \
+        -e "s|ScriptAlias /znuny/|ScriptAlias /otrs/|" \
+        -e "s|Alias /znuny-web/|Alias /otrs-web/|" \
+        ${OTRS_ROOT}/scripts/apache2-httpd.include.conf \
+    && sed -i "s|/opt/znuny|${OTRS_ROOT}|g" ${OTRS_ROOT}/scripts/apache2-perl-startup.pl \
+    && a2dismod -q mpm_event \
     && a2enmod -q mpm_prefork headers \
     && ln -s ${OTRS_ROOT}/scripts/apache2-httpd.include.conf /etc/apache2/conf-enabled/zzz_znuny.conf \
     && echo 'ServerName localhost' > /etc/apache2/conf-enabled/servername.conf \
