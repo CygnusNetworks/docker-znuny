@@ -1,0 +1,50 @@
+# Minimal Znuny LTS + MariaDB stack for local testing.
+# Usage:
+#   cp Config.pm.example ./Config.pm   # then adjust credentials if needed
+#   docker compose up -d
+# First boot: complete the web installer at http://localhost:8080/otrs/installer.pl
+# (or import an existing DB and skip the installer).
+
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: znuny
+      MYSQL_USER: znuny
+      MYSQL_PASSWORD: znuny
+    volumes:
+      - znuny-db:/var/lib/mysql
+    command:
+      - --max-allowed-packet=128M
+      - --innodb-log-file-size=256M
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  znuny:
+    image: ghcr.io/cygnusnetworks/znuny:stable
+    # or: docker.io/cygnusnetworks/znuny:stable
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Config.pm:/opt/otrs/Kernel/Config.pm:ro
+      # Optional local overrides:
+      # - ./Custom:/opt/otrs/Custom
+      # Article storage on filesystem (only if ArticleStorageFS is enabled):
+      # - znuny-article:/opt/otrs/var/article
+    environment:
+      # Set to 1 before running interactive migration / installer steps if needed
+      ZNUNY_SKIP_REBUILD: "0"
+      ZNUNY_SKIP_DAEMON: "0"
+
+volumes:
+  znuny-db:
+  # znuny-article:

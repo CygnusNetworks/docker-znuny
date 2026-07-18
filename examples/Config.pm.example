@@ -1,0 +1,41 @@
+# --
+# Minimal Kernel/Config.pm example for the Znuny Docker image.
+# Copy to a host path and bind-mount as /opt/otrs/Kernel/Config.pm
+# --
+package Kernel::Config;
+
+use strict;
+use warnings;
+use utf8;
+
+sub Load {
+    my $Self = shift;
+
+    # Database
+    $Self->{DatabaseHost} = $ENV{ZNUNY_DB_HOST} // 'db';
+    $Self->{Database}     = $ENV{ZNUNY_DB_NAME} // 'znuny';
+    $Self->{DatabaseUser} = $ENV{ZNUNY_DB_USER} // 'znuny';
+    $Self->{DatabasePw}   = $ENV{ZNUNY_DB_PASSWORD} // 'znuny';
+    $Self->{DatabaseDSN}  = "DBI:mysql:database=$Self->{Database};host=$Self->{DatabaseHost};";
+
+    # FQDN used in links / system address generation
+    $Self->{FQDN} = $ENV{ZNUNY_FQDN} // 'znuny.example.com';
+
+    # System ID (unique per instance, 1..99)
+    $Self->{SystemID} = $ENV{ZNUNY_SYSTEM_ID} // '10';
+
+    # Default admin email
+    $Self->{AdminEmail} = $ENV{ZNUNY_ADMIN_EMAIL} // 'admin@example.com';
+
+    # Organization
+    $Self->{Organization} = $ENV{ZNUNY_ORGANIZATION} // 'Example Org';
+
+    # Log
+    $Self->{'LogModule'}          = 'Kernel::System::Log::File';
+    $Self->{'LogModule::LogFile'} = '/opt/otrs/var/log/znuny.log';
+
+    return 1;
+}
+
+# Keep this package name for Znuny bootstrap.
+1;
