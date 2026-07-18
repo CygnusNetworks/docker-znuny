@@ -37,7 +37,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -113,6 +113,90 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=znuny-${{ steps.ver.outputs.version }}
           cache-to: type=gha,scope=znuny-${{ steps.ver.outputs.version }},mode=max
+
+      # One GitHub Release per exact Znuny version (tag = 6.5.22, not v6.5.22).
+      # Rebuilds of an already-published version skip create (idempotent).
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          ALSO_STABLE: ${{ steps.ver.outputs.also_stable }}
+        run: |
+          set -euo pipefail
+          SERIES="${VERSION%.*}"
+          UPSTREAM_TAG="rel-${VERSION//./_}"
+
+          EXTRA_TAGS=()
+          if [ "${ALSO_STABLE}" = "true" ]; then
+            EXTRA_TAGS+=("\`${SERIES}\`")
+            if [ "${SERIES}" = "${STABLE_SERIES}" ]; then
+              EXTRA_TAGS+=("\`stable\`" "\`latest\`")
+            fi
+          fi
+          if [ ${#EXTRA_TAGS[@]} -gt 0 ]; then
+            ALSO_LINE="Also published as: $(IFS=', '; echo "${EXTRA_TAGS[*]}")"
+          else
+            ALSO_LINE="Only the exact version tag was published (series/stable/latest not updated)."
+          fi
+
+          DIGEST=""
+          if DIGEST_LINE=$(docker buildx imagetools inspect "${GHCR_IMAGE}:${VERSION}" 2>/dev/null | grep -E '^Digest:' | head -1); then
+            DIGEST="${DIGEST_LINE#Digest: }"
+            DIGEST="${DIGEST// /}"
+          fi
+          DIGEST_LINE_MD="*(digest unavailable)*"
+          if [ -n "${DIGEST}" ]; then
+            DIGEST_LINE_MD="\`${DIGEST}\`"
+          fi
+
+          NOTES="$(cat <<EOF
+          ## Znuny ${VERSION}
+
+          Debian-based Docker image for [Znuny](https://www.znuny.org/) **${VERSION}**.
+
+          ### Pull
+
+          \`\`\`bash
+          docker pull ${GHCR_IMAGE}:${VERSION}
+          docker pull ${DOCKERHUB_IMAGE}:${VERSION}
+          \`\`\`
+
+          ### Tags
+
+          - Exact: \`${VERSION}\`
+          - ${ALSO_LINE}
+
+          GHCR digest: ${DIGEST_LINE_MD}
+
+          ### Upstream
+
+          - Tarball: https://download.znuny.org/releases/znuny-${VERSION}.tar.gz
+          - Source tag: [\`${UPSTREAM_TAG}\`](https://github.com/znuny/Znuny/releases/tag/${UPSTREAM_TAG})
+          - Built from commit: \`${GITHUB_SHA}\`
+
+          > Not an official Znuny GmbH image. Community packaging by CygnusNetworks.
+          EOF
+          )"
+          # strip leading indent from heredoc
+          NOTES="$(printf '%s\n' "${NOTES}" | sed 's/^          //')"
+
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists — leaving notes unchanged (image was rebuilt)"
+            exit 0
+          fi
+
+          LATEST_FLAG=(--latest=false)
+          if [ "${SERIES}" = "${STABLE_SERIES}" ]; then
+            LATEST_FLAG=(--latest)
+          fi
+
+          gh release create "${VERSION}" \
+            --title "Znuny ${VERSION}" \
+            --notes "${NOTES}" \
+            --target "${GITHUB_SHA}" \
+            "${LATEST_FLAG[@]}"
+
+          echo "Created GitHub Release ${VERSION}"
 
       # Child rebuild: private docker-znuny-cygnus polls the public parent image
       # on a schedule (no custom secrets / PAT required on either side).

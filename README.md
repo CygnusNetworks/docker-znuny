@@ -2,6 +2,7 @@
 
 [![Build](https://github.com/CygnusNetworks/docker-znuny/actions/workflows/build.yml/badge.svg)](https://github.com/CygnusNetworks/docker-znuny/actions/workflows/build.yml)
 [![Watch LTS](https://github.com/CygnusNetworks/docker-znuny/actions/workflows/watch-lts.yml/badge.svg)](https://github.com/CygnusNetworks/docker-znuny/actions/workflows/watch-lts.yml)
+[![GitHub release](https://img.shields.io/github/v/release/CygnusNetworks/docker-znuny?display_name=tag&sort=semver)](https://github.com/CygnusNetworks/docker-znuny/releases)
 [![GitHub license](https://img.shields.io/github/license/CygnusNetworks/docker-znuny)](https://github.com/CygnusNetworks/docker-znuny/blob/main/LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/CygnusNetworks/docker-znuny)](https://github.com/CygnusNetworks/docker-znuny/commits/main)
 [![Docker Image Version](https://img.shields.io/docker/v/cygnusnetworks/znuny?sort=semver&label=docker%20hub)](https://hub.docker.com/r/cygnusnetworks/znuny)
@@ -156,8 +157,10 @@ tarball and `.sha256` checksum.
 | Trigger | Behaviour |
 |---------|-----------|
 | Push to `main` | Rebuilds the configured default LTS version |
-| Daily schedule (`watch-lts.yml`) | Detects new `rel-6_5_*` tags on [znuny/Znuny](https://github.com/znuny/Znuny); builds if the image tag is missing |
+| Daily schedule (`watch-lts.yml`) | Detects new `rel-6_5_*` / `rel-7_3_*` tags on [znuny/Znuny](https://github.com/znuny/Znuny); builds if the image tag is missing |
 | `workflow_dispatch` | Manual build for a given version |
+
+Successful builds create a **[GitHub Release](https://github.com/CygnusNetworks/docker-znuny/releases)** whose tag matches the exact Znuny version (e.g. `6.5.22`). Rebuilds of an existing version leave the release as-is. The production series (`6.5`) is marked as the latest GitHub release; other series (e.g. `7.x`) publish releases without taking the “latest” flag.
 
 CI secrets (org or repo): `DOCKER_USERNAME`, `DOCKER_TOKEN` for Docker Hub.
 GHCR uses the built-in `GITHUB_TOKEN`.
